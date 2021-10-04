@@ -9,6 +9,8 @@
    -> *_etl_nothree.json (!)
    - és itt még sztem hiányzik vmi JSON-feldolgozás!
 
+ ! kérek szépen GPU-s gépet, hogy futtathassam a dolgokat! (!) XXX
+
 -----
 
  ? 
@@ -16,7 +18,23 @@
  ? hogyan szedi ki a BERT modellből az input mátrixot? (?)
  ? és miért ezt szedi ki?
  ? 
+   i a pici  _tesztadaton tesztelgetem! XXX :)
+     $ python3 codes/bert.py > featuresfinal_test_new.txt
+   ! 
+   ! a 79-88. sort kell még megérteni!  _ITT_T
+   ! vö: https://huggingface.co/transformers/model_doc/bert.html#tfbertmodel
+   ! 
+   + DIVISOR = 3
+   + attention_mask feldolg javítva == nem csúszik el az array_split() miatt!
+     => próba az élesen: etl_nothree.tsv; DIVISOR = 200; range(3)
+        diff clasrep_bert_etl_nothree.json -- REGI vs UJ
+         _mindhárom "macro avg F1" .45 -ről .50-re nőtt (!!!)
+         _mindhárom "weighted avg F1" .60 -ról .65-re nőtt (!!!)
+     !  _ez itt a "Table 3" ~10%-os javulását jelenti!_  (!) XXX
+       "persze", mert a 4861-en is nagyon elcsúszik az array_split! (!)
    i minden mondathoz egy 768 dim vektort kapok asszem! (!)
+     = merthogy: BERT-Base :)
+   ! hogy jött létre ez a script? saját kútfőből? példából? (?)
 
  $ python3 codes/bert.py > featuresfinal_${INPUT}.txt
    = korpusz alapján "BERT-alapú feature-ök input mátrixként"
@@ -42,14 +60,14 @@
 
 -----
 
- ! változtattam
+ i változtattam
    o grid*py -ben: konkrét inputfájl megadása (v10)
    * etl.tsv helyett test.tsv (sokkal kisebb, jól vizsgálható)
    * range(100) -> range(3)
    * featuresfinal kiírása olvasható formában
    * kiíratások
 
- ! javítottam
+ i javítottam
    o precorpused -> pretrained :)
    o LogReg/NB/SVM label-eknél: np.load() helyett pd.read_csv()
    o 'zero_division=0' elhagyása
