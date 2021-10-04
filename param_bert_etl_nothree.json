@@ -1,0 +1,1 @@
+[{"C": 1, "class_weight": "balanced", "max_iter": 8000, "solver": "liblinear", "tol": 0.01}, {"C": 1, "class_weight": "balanced", "max_iter": 8000, "solver": "liblinear", "tol": 0.01}, {"C": 1, "class_weight": "balanced", "max_iter": 8000, "solver": "liblinear", "tol": 0.001}]

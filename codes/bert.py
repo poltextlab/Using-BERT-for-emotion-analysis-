@@ -6,25 +6,31 @@ import pandas as pd
 import numpy as np
 import os
 
+INPUT = 'etl_nothree'
+#INPUT='test'
+
 # the first section is custom made, different setups might need different solutions here
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-tokenizer = AutoTokenizer.from_precorpused('SZTAKI-HLT/hubert-base-cc')
-model = AutoModel.from_precorpused('SZTAKI-HLT/hubert-base-cc')
+tokenizer = AutoTokenizer.from_pretrained('SZTAKI-HLT/hubert-base-cc')
+model = AutoModel.from_pretrained('SZTAKI-HLT/hubert-base-cc')
 
 # the corpus is read from a tsv, tokenized (note that it does not check for length requirements at this time)
-corpus = pd.read_csv("etl.tsv", sep='\t')
+corpus = pd.read_csv(f"corpora_and_labels/{INPUT}.tsv", sep='\t')
+print(corpus)
 tokenized = corpus["text"].apply((lambda x: tokenizer.encode(x, add_special_tokens=True)))
+print(tokenized)
 
 # the following section creates padding and attention masks
 max_len = 0
 for i in tokenized.values:
     if len(i) > max_len:
         max_len = len(i)
-
 padded = np.array([i + [0]*(max_len-len(i)) for i in tokenized.values])
+print(padded)
 attention_mask = np.where(padded != 0, 1, 0)
+print(attention_mask)
 
 # for computationally weaker setups, batch execution is the only way to process the texts
 # the floor divisor is the variable to manipulate here if a difference in batch size is needed
@@ -40,6 +46,7 @@ featuresfinal = np.empty((0, 768), dtype='float32')
 # last_hidden function takes in batches of tokenized texts to extract BERT's last hidden states, i.e. contextual word embeddings
 def last_hidden():
     for count, i in enumerate(splitpadded):
+        print(count, i)
         paddedsplit = np.array(i, dtype='float64')
         length = len(paddedsplit)
         #continuous feedback is received from the runs, to ensure the process is not hung and the model is running on gpu
@@ -64,6 +71,11 @@ def last_hidden():
 
 # the output of the function and the labels are saved as separate files, so this script can be abandoned
 last_hidden()
-np.save("featuresfinal", featuresfinal)
 labels = corpus["topik"]
-np.save("labels", labels)
+
+np.save(f"featuresfinal_{INPUT}", featuresfinal)
+np.save(f"labels_{INPUT}", labels)
+
+print(list(featuresfinal))
+print(labels)
+

@@ -1,0 +1,63 @@
+
+ +  _cikkbeli "Table 3" előállítása_ 
+   i futtatás `etl_nothree` -vel (alias `v10`)
+   i működés
+     @ corpora_and_labels/etl_nothree.tsv
+     $ python3 codes/bert.py > featuresfinal_etl_nothree.txt
+     @ featuresfinal_etl_nothree*
+     $ python3 codes/gridsearch_BERT.py
+   -> *_etl_nothree.json (!)
+   - és itt még sztem hiányzik vmi JSON-feldolgozás!
+
+-----
+
+ ? 
+ ? a nagy kérdés:  _hogyan működik a bert.py?_ 
+ ? hogyan szedi ki a BERT modellből az input mátrixot? (?)
+ ? és miért ezt szedi ki?
+ ? 
+   i minden mondathoz egy 768 dim vektort kapok asszem! (!)
+
+ $ python3 codes/bert.py > featuresfinal_${INPUT}.txt
+   = korpusz alapján "BERT-alapú feature-ök input mátrixként"
+   i range(3) -mal futtatom (!)
+   i dl3-on/GPU -- futási idő: 1m30s
+     -- de ott meg nincs mindig hely futtatásra ugye :)
+   + test.tsv: itthon CPU-n is lefut :)
+   x etl.tsv: itthon CPU-n nem fut le
+     = 12m (x6 mag = 72m) után kilőttem
+
+ $ python3 codes/gridsearch_LogReg.py
+ $ python3 codes/gridsearch_NB.py
+ $ python3 codes/gridsearch_SVM.py
+   = ezek klasszikus ML módszerek, tf-idf inputtal -- v10-zel
+     (a korpusz -> tf-idf konverzió nincs a repóban, lehetne)
+
+ $ python3 codes/gridsearch_BERT.py
+   = LogReg: tf-idf helyett "BERT-ös feature-mátrix" alapján (!)
+   i test.tsv alapján nem megy: túl kevés az adat -> etl.tsv kell!
+   + etl.tsv: lefut -- futási idő: 2m
+   x 
+   i GPU nem kell neki = kész BERT-ös paraméterekkel fut
+
+-----
+
+ ! változtattam
+   o grid*py -ben: konkrét inputfájl megadása (v10)
+   * etl.tsv helyett test.tsv (sokkal kisebb, jól vizsgálható)
+   * range(100) -> range(3)
+   * featuresfinal kiírása olvasható formában
+   * kiíratások
+
+ ! javítottam
+   o precorpused -> pretrained :)
+   o LogReg/NB/SVM label-eknél: np.load() helyett pd.read_csv()
+   o 'zero_division=0' elhagyása
+   o SVM -ben: 'l1' elhagyása
+
+ e jó lenne... :)
+   o Makefile vagy vmi ilyesmi
+   o diff codes/grid* -> lehetne 1 db script
+   o diff corpora_and_labels/etl* -> grep lenne jó itt
+   o van sok warning -- jó lenne, ha nem lenne!
+
