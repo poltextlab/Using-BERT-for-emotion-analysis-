@@ -1,23 +1,36 @@
 
- i  _a második cikkbeli BERT-es dolgokat vizsgálom_ 
-   $ make do
-    $ python3 codes/bert.py --input test --divisor 3 --first-word-pooling > featuresfinal_test.txt
-      = eredeti módszer tesztkorpuszocskán
-    $ python3 codes/bert.py --input investigate --divisor 3 --all-word-pooling --verbose > featuresfinal_investigate.txt
-      = all-word-pooling kísérlet + spec korpusz + verbose
-    _ITT_T
-
------
-
- +  _cikkbeli "Table 3" előállítása_ 
-   i futtatás `etl_nothree` -vel (alias `v10`)
-   i működés
+ +  _a második cikkbeli BERT-es dolgokat vizsgálom_ 
+   = cikkbeli "Table 3" előállítása
+     i futtatás `etl_nothree` -vel (alias `v10`)
+   i működtetés
      @ corpora_and_labels/etl_nothree.tsv
-     $ python3 codes/bert.py > featuresfinal_etl_nothree.txt
+     $ python3 codes/bert.py --input etl_nothree --divisor 200 $POOLING > featuresfinal_etl_nothree.txt
      @ featuresfinal_etl_nothree*
      $ python3 codes/gridsearch_BERT.py
+       ! ajaj, ezzel minden futás más? (???)
+         ! vhogy determinisztikussá kéne tenni! (!) XXX :)
    -> *_etl_nothree.json (!)
-   - és itt még sztem hiányzik vmi JSON-feldolgozás!
+   i eredmények:
+     o cikkbeli kiindulás: F1 = 0.59
+     o 2021.10.04. POOLING=--first-word-pooling -> F1 = 0.65 (+6%p)
+       = adatok párhuzamos kezelés (hiba javítva)
+     o 2021.10.12. POOLING=--mean-pooling -> F1 =  _0.69 (+4%p)
+       $ make example
+       = ötletem az előadás alapján: első szó helyett átlag!
+     ! további ötlet:
+       hagyjuk ki a PADDING szavakat az átlagolásból! (!) XXX :)  _ITT_T
+   x 
+   - a végén még sztem hiányzik vmi JSON-feldolgozás,
+     ami az átlagokat kiszámolja -> akkor lesz meg a "Table 3"! (!)
+   x 
+   $ make test
+     = eredeti módszer tesztkorpuszocskán
+   $ make investigate
+     = all-word-pooling kísérlet + spec korpusz + verbose
+      ! ehhez most nem illeszkedik a gridsearch_BERT.py,
+        mert ugye nem 2, hanem 3-dim a tenzor! (!) XXX
+
+ ! a fájlneveknek is szépen paraméterek szerint értelmezhetőknek kéne lenniük! (!) XXX
 
  ! kérek szépen GPU-s gépet, hogy futtathassam a dolgokat! (!) XXX
 

@@ -64,11 +64,13 @@ def main():
     last_hidden_states = []
     model = model.to(device)
 
-    DIMS = 768 # <= 768 (because of using BERT Base)
+    DIMS = 768 # 768 at most (because of using BERT Base)
     if args.first_word_pooling:
-        featuresfinal = np.empty((0, DIMS), dtype='float32') # dim! XXX
+        featuresfinal = np.empty((0, DIMS), dtype='float32')
     elif args.all_word_pooling:
-        featuresfinal = np.empty((0, max_len, DIMS), dtype='float32') # dim! XXX
+        featuresfinal = np.empty((0, max_len, DIMS), dtype='float32')
+    elif args.mean_pooling:
+        featuresfinal = np.empty((0, DIMS), dtype='float32')
 
     # take batches of tokenized texts
     # to extract BERT's last hidden states, i.e. contextual word embeddings
@@ -99,13 +101,15 @@ def main():
             last_hidden_states = model(input_batch, attention_mask=mask_batch)
         print('Hidden states created for batch', batch_cnt)
 
-        # dimenziók: mondat, szó, szóvektordim
+        # tensor dimensions: 0=sents, 1=words, 2=coords
         if args.first_word_pooling:
-            # XXX XXX XXX mi van itt???
-            # XXX XXX XXX tök komoly, hogy az első szó alapján döntünk???
+            # we take the vector of the _first_ word, seriously :)
             features = last_hidden_states[0][:, 0, 0:DIMS].cpu().numpy()
         elif args.all_word_pooling:
             features = last_hidden_states[0][:, :, 0:DIMS].cpu().numpy()
+        elif args.mean_pooling:
+            lhs = last_hidden_states[0][:, :, 0:DIMS].cpu().numpy()
+            features = np.mean(lhs, axis=1) # average above words
 
         if args.verbose:
             print(features.shape)
@@ -134,7 +138,9 @@ def main():
         for padd, feat, label in zip(padded, featuresfinal, labels):
             print()
             for p, f in zip(padd, feat):
-                print('\t'.join(map(str, [label, p, f])))
+                # XXX why do we have additional whitespaces?
+                token = ''.join(filter(lambda x: x != " ", tokenizer.decode(int(p))))
+                print(f'{label}\t{p}\t"{token}"\t{f}')
 
         print()
         print('Distances')
@@ -155,7 +161,7 @@ def main():
             anom = '!ERR!' if dist >= 0.08 and issame else ''
             print(f'#{i} L{al} {issamemark} #{j} L{bl} = {dist} {anom}')
 
-        # még egy clustering kell a végére és kész a többértelműség XXX :)
+        # XXX add clustering at the end -> polysemy will be solved :)
 
 
 def get_args():
@@ -182,12 +188,17 @@ def get_args():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         '-a', '--all-word-pooling',
-        help='use all words for sentence representation',
+        help='all words = sentence representation',
         action='store_true'
     )
     group.add_argument(
         '-f', '--first-word-pooling',
-        help='use first word for sentence representation',
+        help='first word = sentence representation',
+        action='store_true'
+    )
+    group.add_argument(
+        '-m', '--mean-pooling',
+        help='average of all words = sentence representation',
         action='store_true'
     )
 
@@ -197,11 +208,6 @@ def get_args():
         action='store_true'
     )
 
-    if (not parser.parse_args().first_word_pooling and
-        not parser.parse_args().all_word_pooling):
-       print("Switch '-a' or '-f' is mandatory!")
-       exit(0)
-    
     return parser.parse_args()
 
 
