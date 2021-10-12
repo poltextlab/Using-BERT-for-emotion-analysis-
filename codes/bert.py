@@ -1,3 +1,8 @@
+"""
+Obtain BERT contextual embeddings for sentences.
+"""
+
+import argparse
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -9,11 +14,43 @@ import pandas as pd
 import numpy as np
 import os
 
-#INPUT = 'etl_nothree'
-INPUT='test'
+np.set_printoptions(threshold=np.inf)
 
-#DIVISOR = 200
-DIVISOR = 3
+
+def get_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        '-i', '--input',
+        help='input corpus (without ".tsv")',
+        required=True,
+        type=str,
+        default=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        '-d', '--divisor',
+        help='split corpus to this many batches',
+        required=True,
+        type=int,
+        default=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        help='verbose output for investigation',
+        action='store_true'
+    )
+    
+    return parser.parse_args()
+
+
+args = get_args()
+
+INPUT= args.input # 'etl_nothree'
+
+DIVISOR = args.divisor # 3 or 200 :)
 
 # different setups might need different solutions here
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -21,6 +58,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 tokenizer = AutoTokenizer.from_pretrained('SZTAKI-HLT/hubert-base-cc')
 model = AutoModel.from_pretrained('SZTAKI-HLT/hubert-base-cc')
+
 
 # read corpus from tsv
 corpus = pd.read_csv(f"corpora_and_labels/{INPUT}.tsv", sep='\t')
@@ -52,7 +90,9 @@ splitmask = np.array_split(attention_mask, batchsize)
 
 last_hidden_states = []
 model = model.to(device)
-featuresfinal = np.empty((0, 768), dtype='float32')
+
+DIMS = 768 # <= 768 (because of using BERT Base)
+featuresfinal = np.empty((0, DIMS), dtype='float32') # dim! XXX
 
 # take batches of tokenized texts
 # to extract BERT's last hidden states, i.e. contextual word embeddings
@@ -83,8 +123,16 @@ for count, (batch, mask) in enumerate(zip(splitpadded, splitmask)):
         last_hidden_states = model(input_batch, attention_mask=mask_batch)
     print('Hidden states created for batch', batch_cnt)
 
+    # dimenziók: mondat, szó, szóvektordim
+    # XXX XXX XXX mi van itt???
+    # XXX XXX XXX tök komoly, hogy az első szó alapján döntünk???
     features = last_hidden_states[0][:, 0, :].cpu().numpy()
+    #features = last_hidden_states[0][:, :, 0:DIMS].cpu().numpy()
+    #print(features.shape)
+    #print(features)
+
     featuresfinal = np.append(featuresfinal, features, axis=0)
+
     print('Finished with batch', batch_cnt)
 
 # output + labels are saved as separate files
@@ -93,6 +141,39 @@ labels = corpus["topik"]
 np.save(f"featuresfinal_{INPUT}", featuresfinal)
 np.save(f"labels_{INPUT}", labels)
 
-print(list(featuresfinal))
-print(labels)
+if not args.verbose:
+
+    print(list(featuresfinal))
+    print(labels)
+
+else:
+
+    print()
+    print('Vectors')
+
+    for padd, feat, label in zip(padded, featuresfinal, labels):
+        print()
+        for p, f in zip(padd, feat):
+            print('\t'.join(map(str, [label, p, f])))
+
+    print()
+    print('Distances')
+
+    import itertools as it
+    from scipy.spatial import distance
+
+    SAMPLEWORD = 2765 # "vár"
+
+    for i, j in it.combinations(range(len(padded)), 2):
+        ap, af, al = padded[i], featuresfinal[i], labels[i]
+        bp, bf, bl = padded[j], featuresfinal[j], labels[j]
+        a = [x[1] for x in zip(ap, af) if x[0] == SAMPLEWORD]
+        b = [x[1] for x in zip(bp, bf) if x[0] == SAMPLEWORD]
+        dist = distance.cosine(a, b)
+        issame = al == bl
+        issamemark = '==' if issame else '<>'
+        anom = '!ERR!' if dist >= 0.08 and issame else ''
+        print(f'#{i} L{al} {issamemark} #{j} L{bl} = {dist} {anom}')
+
+    # még egy clustering kell a végére és kész a többértelműség XXX :)
 
