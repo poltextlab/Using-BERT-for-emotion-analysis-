@@ -21,7 +21,7 @@ def main():
     """Main."""
     args = get_args()
 
-    INPUT= args.input # 'etl_nothree'
+    INPUT = args.input # 'etl_nothree'
 
     DIVISOR = args.divisor # 3 or 200 :)
 
@@ -65,7 +65,10 @@ def main():
     model = model.to(device)
 
     DIMS = 768 # <= 768 (because of using BERT Base)
-    featuresfinal = np.empty((0, DIMS), dtype='float32') # dim! XXX
+    if args.first_word_pooling:
+        featuresfinal = np.empty((0, DIMS), dtype='float32') # dim! XXX
+    elif args.all_word_pooling:
+        featuresfinal = np.empty((0, max_len, DIMS), dtype='float32') # dim! XXX
 
     # take batches of tokenized texts
     # to extract BERT's last hidden states, i.e. contextual word embeddings
@@ -97,12 +100,16 @@ def main():
         print('Hidden states created for batch', batch_cnt)
 
         # dimenziók: mondat, szó, szóvektordim
-        # XXX XXX XXX mi van itt???
-        # XXX XXX XXX tök komoly, hogy az első szó alapján döntünk???
-        features = last_hidden_states[0][:, 0, :].cpu().numpy()
-        #features = last_hidden_states[0][:, :, 0:DIMS].cpu().numpy()
-        #print(features.shape)
-        #print(features)
+        if args.first_word_pooling:
+            # XXX XXX XXX mi van itt???
+            # XXX XXX XXX tök komoly, hogy az első szó alapján döntünk???
+            features = last_hidden_states[0][:, 0, 0:DIMS].cpu().numpy()
+        elif args.all_word_pooling:
+            features = last_hidden_states[0][:, :, 0:DIMS].cpu().numpy()
+
+        if args.verbose:
+            print(features.shape)
+            print(features)
 
         featuresfinal = np.append(featuresfinal, features, axis=0)
 
@@ -171,11 +178,29 @@ def get_args():
         type=int,
         default=argparse.SUPPRESS
     )
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        '-a', '--all-word-pooling',
+        help='use all words for sentence representation',
+        action='store_true'
+    )
+    group.add_argument(
+        '-f', '--first-word-pooling',
+        help='use first word for sentence representation',
+        action='store_true'
+    )
+
     parser.add_argument(
         '-v', '--verbose',
         help='verbose output for investigation',
         action='store_true'
     )
+
+    if (not parser.parse_args().first_word_pooling and
+        not parser.parse_args().all_word_pooling):
+       print("Switch '-a' or '-f' is mandatory!")
+       exit(0)
     
     return parser.parse_args()
 

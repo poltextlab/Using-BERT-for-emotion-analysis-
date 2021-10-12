@@ -1,4 +1,14 @@
 
+ i  _a második cikkbeli BERT-es dolgokat vizsgálom_ 
+   $ make do
+    $ python3 codes/bert.py --input test --divisor 3 --first-word-pooling > featuresfinal_test.txt
+      = eredeti módszer tesztkorpuszocskán
+    $ python3 codes/bert.py --input investigate --divisor 3 --all-word-pooling --verbose > featuresfinal_investigate.txt
+      = all-word-pooling kísérlet + spec korpusz + verbose
+    _ITT_T
+
+-----
+
  +  _cikkbeli "Table 3" előállítása_ 
    i futtatás `etl_nothree` -vel (alias `v10`)
    i működés
@@ -13,17 +23,16 @@
 
 -----
 
- ? 
- ? a nagy kérdés:  _hogyan működik a bert.py?_ 
- ? hogyan szedi ki a BERT modellből az input mátrixot? (?)
- ? és miért ezt szedi ki?
- ? 
+ * a nagy kérdés:  _hogyan működik a bert.py?_ 
    i a pici  _tesztadaton tesztelgetem! XXX :)
-     $ python3 codes/bert.py > featuresfinal_test_new.txt
-   ! 
-   ! a 79-88. sort kell még megérteni!  _ITT_T
-   ! vö: https://huggingface.co/transformers/model_doc/bert.html#tfbertmodel
-   ! 
+     $ python3 codes/bert.py -i investigate > featuresfinal_investigate.txt ; echo ; tail -n +2 corpora_and_labels/investigate.tsv | nl -v 0
+   + hogyan szedi ki a BERT modellből az input mátrixot:
+     -> last_hidden_states[0] (!)
+   + a 79-88. sort kell még megérteni!
+     !   _valóban csak minden mondat első szavát veszi figyelembe_ 
+     i vö: https://huggingface.co/transformers/model_doc/bert.html#tfbertmodel
+     i mitől lesz másabb, amit itt kapunk, mint egy sima ebbedding? (?)
+       -> Lévai Dani: attól, hogy itt minden szó vektorában az egész mondat megjelenik!
    + DIVISOR = 3
    + attention_mask feldolg javítva == nem csúszik el az array_split() miatt!
      => próba az élesen: etl_nothree.tsv; DIVISOR = 200; range(3)
