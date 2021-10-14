@@ -1,0 +1,103 @@
+
+ +  _a második cikkbeli BERT-es dolgokat vizsgálom_ 
+   = cikkbeli "Table 3" előállítása
+     i futtatás `etl_nothree` -vel (alias `v10`)
+   i működtetés
+     @ corpora_and_labels/etl_nothree.tsv
+     $ python3 codes/bert.py --input etl_nothree --divisor 200 $POOLING > featuresfinal_etl_nothree.txt
+     @ featuresfinal_etl_nothree*
+     $ python3 codes/gridsearch_BERT.py
+       ! ajaj, ezzel minden futás más? (???)
+         ! vhogy determinisztikussá kéne tenni! (!) XXX :)
+   -> *_etl_nothree.json (!)
+   i eredmények:
+     o cikkbeli kiindulás: F1 = 0.59
+     o 2021.10.04. POOLING=--first-word-pooling -> F1 = 0.65 (+6%p)
+       = adatok párhuzamos kezelés (hiba javítva)
+     o 2021.10.12. POOLING=--mean-pooling -> F1 =  _0.69 (+4%p)
+       $ make example
+       = ötletem az előadás alapján: első szó helyett átlag!
+     ! további ötlet:
+       hagyjuk ki a PADDING szavakat az átlagolásból! (!) XXX :)  _ITT_T
+   x 
+   - a végén még sztem hiányzik vmi JSON-feldolgozás,
+     ami az átlagokat kiszámolja -> akkor lesz meg a "Table 3"! (!)
+   x 
+   $ make test
+     = eredeti módszer tesztkorpuszocskán
+   $ make investigate
+     = all-word-pooling kísérlet + spec korpusz + verbose
+      ! ehhez most nem illeszkedik a gridsearch_BERT.py,
+        mert ugye nem 2, hanem 3-dim a tenzor! (!) XXX
+
+ ! a fájlneveknek is szépen paraméterek szerint értelmezhetőknek kéne lenniük! (!) XXX
+
+ ! kérek szépen GPU-s gépet, hogy futtathassam a dolgokat! (!) XXX
+
+-----
+
+ * a nagy kérdés:  _hogyan működik a bert.py?_ 
+   i a pici  _tesztadaton tesztelgetem! XXX :)
+     $ python3 codes/bert.py -i investigate > featuresfinal_investigate.txt ; echo ; tail -n +2 corpora_and_labels/investigate.tsv | nl -v 0
+   + hogyan szedi ki a BERT modellből az input mátrixot:
+     -> last_hidden_states[0] (!)
+   + a 79-88. sort kell még megérteni!
+     !   _valóban csak minden mondat első szavát veszi figyelembe_ 
+     i vö: https://huggingface.co/transformers/model_doc/bert.html#tfbertmodel
+     i mitől lesz másabb, amit itt kapunk, mint egy sima ebbedding? (?)
+       -> Lévai Dani: attól, hogy itt minden szó vektorában az egész mondat megjelenik!
+   + DIVISOR = 3
+   + attention_mask feldolg javítva == nem csúszik el az array_split() miatt!
+     => próba az élesen: etl_nothree.tsv; DIVISOR = 200; range(3)
+        diff clasrep_bert_etl_nothree.json -- REGI vs UJ
+         _mindhárom "macro avg F1" .45 -ről .50-re nőtt (!!!)
+         _mindhárom "weighted avg F1" .60 -ról .65-re nőtt (!!!)
+     !  _ez itt a "Table 3" ~10%-os javulását jelenti!_  (!) XXX
+       "persze", mert a 4861-en is nagyon elcsúszik az array_split! (!)
+   i minden mondathoz egy 768 dim vektort kapok asszem! (!)
+     = merthogy: BERT-Base :)
+   ! hogy jött létre ez a script? saját kútfőből? példából? (?)
+
+ $ python3 codes/bert.py > featuresfinal_${INPUT}.txt
+   = korpusz alapján "BERT-alapú feature-ök input mátrixként"
+   i range(3) -mal futtatom (!)
+   i dl3-on/GPU -- futási idő: 1m30s
+     -- de ott meg nincs mindig hely futtatásra ugye :)
+   + test.tsv: itthon CPU-n is lefut :)
+   x etl.tsv: itthon CPU-n nem fut le
+     = 12m (x6 mag = 72m) után kilőttem
+
+ $ python3 codes/gridsearch_LogReg.py
+ $ python3 codes/gridsearch_NB.py
+ $ python3 codes/gridsearch_SVM.py
+   = ezek klasszikus ML módszerek, tf-idf inputtal -- v10-zel
+     (a korpusz -> tf-idf konverzió nincs a repóban, lehetne)
+
+ $ python3 codes/gridsearch_BERT.py
+   = LogReg: tf-idf helyett "BERT-ös feature-mátrix" alapján (!)
+   i test.tsv alapján nem megy: túl kevés az adat -> etl.tsv kell!
+   + etl.tsv: lefut -- futási idő: 2m
+   x 
+   i GPU nem kell neki = kész BERT-ös paraméterekkel fut
+
+-----
+
+ i változtattam
+   o grid*py -ben: konkrét inputfájl megadása (v10)
+   * etl.tsv helyett test.tsv (sokkal kisebb, jól vizsgálható)
+   * range(100) -> range(3)
+   * featuresfinal kiírása olvasható formában
+   * kiíratások
+
+ i javítottam
+   o precorpused -> pretrained :)
+   o LogReg/NB/SVM label-eknél: np.load() helyett pd.read_csv()
+   o 'zero_division=0' elhagyása
+   o SVM -ben: 'l1' elhagyása
+
+ e jó lenne... :)
+   o Makefile vagy vmi ilyesmi
+   o diff codes/grid* -> lehetne 1 db script
+   o diff corpora_and_labels/etl* -> grep lenne jó itt
+   o van sok warning -- jó lenne, ha nem lenne!
+

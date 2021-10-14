@@ -11,8 +11,8 @@ from sklearn.metrics import classification_report
 from sklearn.naive_bayes import MultinomialNB
 
 
-featuresfinal = pd.read_csv("path_to_corpus_tsv", sep = '\t')
-labels = np.load("path_to_corpus_labels", sep = '\t')
+featuresfinal = pd.read_csv("corpora_and_labels/v10_corpus.tsv", sep = '\t')
+labels = pd.read_csv("corpora_and_labels/v10_labels.tsv", sep = '\t')
 
 # MinMax scaling is applied to the features
 scaler = MinMaxScaler()
@@ -29,13 +29,13 @@ paramlist = list()
 # it fits an optimized logistic regression for all splits
 # the loop outputs a list of dictionaries with results and corresponding parameter information to be extracted later
 # retainment of true-predicted label pairs is not implemented at this point
-for i in range(100):
+for i in range(3):
     train_features, test_features, train_labels, test_labels = train_test_split(featuresfinal, labels, stratify=labels)
     nb = MultinomialNB()
     nbmodel = GridSearchCV(nb, parameters, cv = 3, scoring = 'f1_weighted', n_jobs = -1)
     nbmodel.fit(train_features, train_labels)
     predictions = nbmodel.predict(test_features)
-    classifrep = classification_report(test_labels, predictions, output_dict = True, zero_division=0)
+    classifrep = classification_report(test_labels, predictions, output_dict = True)
     clasrep.append(classifrep)
     paramlist.append(nbmodel.best_params_)
     print("Finished with run!")

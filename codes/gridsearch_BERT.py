@@ -9,9 +9,11 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 
+INPUT = 'etl_nothree'
+#INPUT = 'etl'
 
-featuresfinal = np.load("featuresfinal.npy") # these readings should be changed for other corpora
-labels = np.load("labels.npy")
+featuresfinal = np.load(f"featuresfinal_{INPUT}.npy") # these readings should be changed for other corpora
+labels = np.load(f"labels_{INPUT}.npy")
 
 
 # MinMax scaling is applied to the features
@@ -33,23 +35,23 @@ paramlist = list()
 # it fits an optimized logistic regression for all splits
 # the loop outputs a list of dictionaries with results and corresponding parameter information to be extracted later
 # retainment of true-predicted label pairs is not implemented at this point
-for i in range(100):
+for i in range(3):
     train_features, test_features, train_labels, test_labels = train_test_split(featuresfinal, labels, stratify=labels)
     lr = LogisticRegression()
     lrmodel = GridSearchCV(lr, parameters, cv = 3, scoring = 'f1_weighted', n_jobs = -1)
     lrmodel.fit(train_features, train_labels)
     predictions = lrmodel.predict(test_features)
-    classifrep = classification_report(test_labels, predictions, output_dict = True, zero_division=0)
+    classifrep = classification_report(test_labels, predictions, output_dict = True)
     clasrep.append(classifrep)
     paramlist.append(lrmodel.best_params_)
     print("Finished with run!")
 
 
 # json files preserve the structure well, and are easy to parse
-MyFile = open('clasrep_bert.json', 'w')
+MyFile = open(f'clasrep_bert_{INPUT}.json', 'w')
 json.dump(clasrep, MyFile)
 MyFile.close()
 
-MyFile = open('param_bert.json', 'w')
+MyFile = open(f'param_bert_{INPUT}.json', 'w')
 json.dump(paramlist, MyFile)
 MyFile.close()

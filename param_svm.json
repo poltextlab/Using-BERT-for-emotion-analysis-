@@ -1,0 +1,1 @@
+[{"C": 0.1, "class_weight": "balanced", "max_iter": 8000, "penalty": "l2", "tol": 0.001}, {"C": 1, "class_weight": "balanced", "max_iter": 8000, "penalty": "l2", "tol": 0.001}, {"C": 0.1, "class_weight": "balanced", "max_iter": 8000, "penalty": "l2", "tol": 0.001}]
