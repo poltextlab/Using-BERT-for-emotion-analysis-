@@ -19,6 +19,9 @@
        = ötletem az előadás alapján: első szó helyett átlag!
      ! további ötlet:
        hagyjuk ki a PADDING szavakat az átlagolásból! (!) XXX :)  _ITT_T
+       -- szóval sztem a padding befolyásol! (!)
+          -- sztem ezt tök jó lenne megvizsgálni
+          -- milyen az eloszlása a hosszoknak most? kell!
    x 
    - a végén még sztem hiányzik vmi JSON-feldolgozás,
      ami az átlagokat kiszámolja -> akkor lesz meg a "Table 3"! (!)
@@ -43,6 +46,8 @@
      -> last_hidden_states[0] (!)
    + a 79-88. sort kell még megérteni!
      !   _valóban csak minden mondat első szavát veszi figyelembe_ 
+        o ez lett a '--first-word-pooling'
+        o csináltam '--mean-pooling'-ot, és az jobb lett (ld. fent)
      i vö: https://huggingface.co/transformers/model_doc/bert.html#tfbertmodel
      i mitől lesz másabb, amit itt kapunk, mint egy sima ebbedding? (?)
        -> Lévai Dani: attól, hogy itt minden szó vektorában az egész mondat megjelenik!
@@ -54,7 +59,7 @@
          _mindhárom "weighted avg F1" .60 -ról .65-re nőtt (!!!)
      !  _ez itt a "Table 3" ~10%-os javulását jelenti!_  (!) XXX
        "persze", mert a 4861-en is nagyon elcsúszik az array_split! (!)
-   i minden mondathoz egy 768 dim vektort kapok asszem! (!)
+   i minden mondathoz egy szószám x 768 dim vektort kapok! (!)
      = merthogy: BERT-Base :)
    ! hogy jött létre ez a script? saját kútfőből? példából? (?)
 
